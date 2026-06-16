@@ -1,5 +1,3 @@
-# Домашняя работа: Data Engineering (Фамилия Имя)
-
 ## Задание 1. Работа с Yandex DataTransfer (YDB → Object Storage)
 
 ### Описание
