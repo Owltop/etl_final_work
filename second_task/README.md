@@ -317,7 +317,6 @@ properties={
 
 ## Скриншоты
 
-- `screens/screen1.png` — генерация данных
-- `screens/screen2.png` — DAG завершен
-- `screens/screen3.png` — результаты в S3
-```
+![Генерация данных](screens/screen1.png)
+![DAG завершен](screens/screen2.png)
+![Результаты в S3](screens/screen3.png)
