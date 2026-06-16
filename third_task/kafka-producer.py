@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, lit, concat, when, to_json, struct
+from pyspark.sql.functions import col, lit, concat, when, to_json, struct, array
 from pyspark.sql.types import StringType, IntegerType
 
 def main():
@@ -13,7 +13,6 @@ def main():
 
     df = spark.range(0, NUM_RECORDS).toDF("id")
 
-    # Регион — только через when/otherwise, НЕ через список
     df = df.withColumn("region",
         when(col("id") % 8 == 0, "DE-HE")
         .when(col("id") % 8 == 1, "DE-BY")
@@ -62,14 +61,24 @@ def main():
         to_json(
             struct(
                 col("application_id"),
-                col("customer_id"),
-                col("region"),
-                col("loan_amount"),
-                col("term_months"),
-                col("score"),
-                col("risk_level"),
-                col("doc_type"),
-                col("doc_status"),
+                struct(
+                    col("customer_id"),
+                    col("region")
+                ).alias("customer"),
+                struct(
+                    col("loan_amount").alias("amount"),
+                    col("term_months")
+                ).alias("loan"),
+                struct(
+                    col("score"),
+                    col("risk_level")
+                ).alias("scoring"),
+                array(
+                    struct(
+                        col("doc_type").alias("type"),
+                        col("doc_status").alias("status")
+                    )
+                ).alias("documents"),
                 col("decision_status"),
                 col("submitted_at")
             )

@@ -49,7 +49,7 @@ s3://dataproc-bucket-789/loan-applications/input/
 └── loan_applications_20260505.csv
 ```
 
-Итого: **350 000 строк**
+Итого: **425 000 строк** (100k + 55k + 115k + 75k + 80k), суммарно ~50.7 МБ
 
 ### Схема входного CSV
 

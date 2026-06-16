@@ -22,7 +22,8 @@
 | duration_sec | Int32 | Длительность в секундах |
 | follow_up_required | Utf8 | Требуется ли повторный контакт |
 
-**Объём данных**: 200,000 записей (~35 МБ)
+**Объём данных**: 200 000 записей, выгруженный в Object Storage CSV — 25.79 МБ
+(см. `screens/screen1.png`)
 
 ### Шаги выполнения
 
@@ -35,10 +36,16 @@
 7. Данные успешно выгружены в `dataproc-bucket-789/ydb-transfer-output/`
 
 ### Результат
-![Transfer Done](screenshots/transfer_done.png)
-![S3 Files](screenshots/s3_files_result.png)
+![Трансфер завершён](screens/screen2.png)
+![Объект в Object Storage](screens/screen1.png)
+![Данные в YDB](screens/screen3.png)
 
 ### SQL-скрипты
-- [Создание таблицы](sql/1.yql)
-- [Проверка количества](sql/2.yql)
-- [Просмотр данных](sql/3.yql)
+- [Создание таблицы](create_table.sql)
+- [Проверка количества записей](1.sql)
+- [Просмотр данных](2.sql)
+- [Агрегация по регионам](3.sql)
+
+Генераторы данных: [generate_and_upload.py](generate_and_upload.py) (загрузка
+в YDB через SDK), [make_random_data.py](make_random_data.py) (генерация
+[insert_transactions.yql](insert_transactions.yql)).

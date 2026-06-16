@@ -9,9 +9,9 @@
 
 ## Что сделано
 
-1. Написан PySpark-скрипт `kafka-producer.py` для генерации и отправки **100 000 JSON-сообщений (~30 МБ)** в топик Kafka
-2. Реализовано **пакетное чтение** топика (`kafka-read-flat.py`) с разворачиванием вложенного JSON в плоскую таблицу и сохранением в Parquet и CSV
-3. Реализовано **потоковое чтение** топика (`kafka-read-stream-flat.py`) с flatten и сохранением результата в Parquet
+1. Написан PySpark-скрипт `kafka-producer.py` для генерации и отправки **100 000 вложенных JSON-сообщений (~26.7 МБ)** в топик Kafka
+2. Реализовано **пакетное чтение** топика (`kafka-read-flat.py`) с разворачиванием вложенного JSON в плоскую таблицу (точечная нотация + `explode_outer` для массива `documents`) и сохранением в Parquet и CSV
+3. Реализовано **потоковое чтение** топика (`kafka-read-stream-flat.py`) с тем же flatten и сохранением результата в Parquet
 
 ## Структура репозитория
 
@@ -23,7 +23,8 @@ third_task/
 │   ├── screen3.png
 │   ├── screen4.png
 │   ├── screen5.png
-│   └── screen6.png
+│   ├── screen6.png
+│   └── screen7.png
 ├── kafka-producer.py
 ├── kafka-read-flat.py
 ├── kafka-read-stream-flat.py
@@ -32,19 +33,29 @@ third_task/
 
 ## Схема данных
 
-### До flatten (JSON в топике Kafka)
+### До flatten (вложенный JSON в топике Kafka)
 
 ```json
 {
   "application_id": "loan_784512",
-  "customer_id": "cust_441",
-  "region": "DE-HE",
-  "loan_amount": 15000,
-  "term_months": 36,
-  "score": 712,
-  "risk_level": "medium",
-  "doc_type": "passport",
-  "doc_status": "verified",
+  "customer": {
+    "customer_id": "cust_441",
+    "region": "DE-HE"
+  },
+  "loan": {
+    "amount": 15000,
+    "term_months": 36
+  },
+  "scoring": {
+    "score": 712,
+    "risk_level": "medium"
+  },
+  "documents": [
+    {
+      "type": "passport",
+      "status": "verified"
+    }
+  ],
   "decision_status": "manual_review",
   "submitted_at": "2026-05-01T10:15:11Z"
 }
@@ -61,15 +72,15 @@ third_task/
 ## Описание скриптов
 
 ### `kafka-producer.py`
-Генерирует 100 000 записей в формате JSON и записывает их в топик `dataproc-kafka-topic` через PySpark Structured Streaming API. Использует `when/otherwise` для генерации значений полей. Объём передаваемых данных — **~30 МБ**, что превышает требуемый минимум в 20 МБ.
+Генерирует 100 000 записей и собирает их во **вложенный** JSON (`struct` внутри `struct` для `customer`/`loan`/`scoring` и `array(struct)` для `documents`), затем записывает в топик `dataproc-kafka-topic`. Использует `when/otherwise` для генерации значений полей. Объём передаваемых данных — **~26.7 МБ** (см. screen2), что превышает требуемый минимум в 20 МБ.
 
 ### `kafka-read-flat.py`
-Читает все сообщения из топика пакетным способом (`spark.read`), парсит JSON по заданной схеме через `from_json`, разворачивает вложенную структуру в плоский вид через `.select()`. Результат сохраняется в:
+Читает все сообщения из топика пакетным способом (`spark.read`), парсит вложенный JSON через `from_json` по `StructType` со вложенными `StructType`/`ArrayType`, затем **разворачивает вложенную структуру в плоский вид**: вложенные поля достаются через точечную нотацию (`data.customer.region`, `data.loan.amount`, `data.scoring.score`), а массив `documents` раскрывается через `explode_outer` в колонки `doc_type`/`doc_status`. Результат сохраняется в:
 - `s3a://dataproc-bucket-789/kafka-flat-output/` — формат Parquet
 - `s3a://dataproc-bucket-789/kafka-flat-output-csv/` — формат CSV (первые 1000 записей)
 
 ### `kafka-read-stream-flat.py`
-Читает сообщения из топика потоковым способом (`spark.readStream`) с `trigger(once=True)`, применяет flatten и сохраняет результат в:
+Читает сообщения из топика потоковым способом (`spark.readStream`) с `trigger(once=True)`, применяет тот же flatten вложенного JSON (точечная нотация + `explode_outer` для `documents`) и сохраняет результат в:
 - `s3a://dataproc-bucket-789/kafka-stream-flat-output/` — формат Parquet
 
 ## Результаты
